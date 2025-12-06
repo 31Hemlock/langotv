@@ -11,7 +11,6 @@ export default function BasicController({
   status,
   slot,
   onPress,
-  onAxis,
   onCalibrate,
   onToggleTilt,
 }: BasicControllerProps) {

@@ -76,11 +76,7 @@ export async function requestSensors() {
   }
 }
 
-function planarFromDeviceG(
-  gx: number,
-  gy: number,
-  gz: number
-): { x: number; y: number } {
+function planarFromDeviceG(gx: number, gy: number): { x: number; y: number } {
   switch (orientationAngle()) {
     case 0:
       return { x: gx, y: -gy };
@@ -95,9 +91,9 @@ function planarFromDeviceG(
   }
 }
 
-function vecLen(x: number, y: number) {
-  return Math.hypot(x, y);
-}
+// function vecLen(x: number, y: number) {
+//   return Math.hypot(x, y);
+// }
 
 function normalize(x: number, y: number) {
   const l = Math.hypot(x, y) || 1;
@@ -125,7 +121,7 @@ function synthesizeGFromOrientation(
 
 export function calibrate() {
   if (!lastG) return;
-  const p = planarFromDeviceG(lastG.x, lastG.y, lastG.z);
+  const p = planarFromDeviceG(lastG.x, lastG.y); // lastG.z
   baselinePlanar = { x: p.x, y: p.y };
 }
 
@@ -183,7 +179,7 @@ export function startTilt(opts: Partial<Options> = {}) {
   function tick() {
     if (!lastG) return;
 
-    const p = planarFromDeviceG(lastG.x, lastG.y, lastG.z);
+    const p = planarFromDeviceG(lastG.x, lastG.y); // lastG.z
     let vx = p.x - baselinePlanar.x;
     let vy = p.y - baselinePlanar.y;
 
