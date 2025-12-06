@@ -20,7 +20,7 @@ export default function S4Solo({
 }: BasicControllerProps) {
   const MAG = 1;
   return (
-    <div className="flex flex-col w-full h-full relative overflow-hidden">
+    <div className="flex flex-col w-full h-full relative overflow-hidden select-none">
       <div className="w-full h-full flex flex-row">
         <div className="w-[50%]">
           <div className="h-full grid grid-rows-1 grid-cols-2 mx-2 gap-2">
@@ -67,28 +67,28 @@ export default function S4Solo({
               <div className="grid grid-rows-3 w-full grid-cols-3 overflow-hidden h-full place-items-center">
                 <DirBtn
                   label="↑"
-                  onDown={() => onAxis({ ly: -MAG })} // Up = -Y
+                  onDown={() => onAxis({ ly: -MAG })}
                   onUp={() => onAxis({ ly: 0 })}
                   className="bg-[#eac503] col-start-2 row-start-1 aspect-square rounded-full text-[20px] text-white"
                 />
 
                 <DirBtn
                   label="←"
-                  onDown={() => onAxis({ lx: -MAG })} // Left = -X
+                  onDown={() => onAxis({ lx: -MAG })}
                   onUp={() => onAxis({ lx: 0 })}
                   className="bg-[#eac503] col-start-1 row-start-2 aspect-square rounded-full text-[20px] text-white"
                 />
 
                 <DirBtn
                   label="→"
-                  onDown={() => onAxis({ lx: +MAG })} // Right = +X
+                  onDown={() => onAxis({ lx: +MAG })}
                   onUp={() => onAxis({ lx: 0 })}
                   className="bg-[#eac503] col-start-3 row-start-2 aspect-square rounded-full text-[20px] text-white"
                 />
 
                 <DirBtn
                   label="↓"
-                  onDown={() => onAxis({ ly: +MAG })} // Down = +Y
+                  onDown={() => onAxis({ ly: +MAG })}
                   onUp={() => onAxis({ ly: 0 })}
                   className="bg-[#eac503] col-start-2 row-start-3 aspect-square rounded-full text-[20px] text-white"
                 />
@@ -141,7 +141,7 @@ function Btn({
   label,
   onDown,
   onUp,
-  className = "px-4 py-3 rounded-2xl border select-none",
+  className = "px-4 py-3 rounded-2xl border",
 }: {
   label: string;
   onDown: () => void;
@@ -157,7 +157,7 @@ function Btn({
     <button
       role="button"
       aria-pressed={down}
-      className={`${className}${pressedClasses}`}
+      className={`select-none ${className}${pressedClasses}`}
       onPointerDown={(e) => {
         e.preventDefault();
         if (pid.current == null) {
@@ -191,7 +191,7 @@ function DirBtn({
   label,
   onDown,
   onUp,
-  className = " grid place-items-center font-bold",
+  className = "grid place-items-center font-bold",
 }: {
   label: string;
   onDown: () => void;
@@ -207,7 +207,7 @@ function DirBtn({
     <button
       role="button"
       aria-pressed={down}
-      className={`${className}${pressedClasses} w-full h-full`}
+      className={`select-none ${className}${pressedClasses} w-full h-full`}
       onPointerDown={(e) => {
         e.preventDefault();
         if (pid.current == null) {
