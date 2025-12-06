@@ -97,7 +97,7 @@ export function connectController(h: ControllerHandlers): Promise<void> {
 
   handlers = h;
   connectionState = "connecting";
-  console.log("[RTC] using SIGNALER_URL =", JSON.stringify(SIGNALER_URL));
+  console.log("[RTC] using SIGNALER_URL ");
 
   return new Promise((resolve, reject) => {
     let settled = false;
