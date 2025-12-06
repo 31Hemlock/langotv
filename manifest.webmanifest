@@ -1,0 +1,25 @@
+{
+  "name": "langotv",
+  "short_name": "langotv",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/langotv_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    { "src": "/langotv_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/langotv_180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/langotv_167.png", "sizes": "167x167", "type": "image/png" },
+    { "src": "/langotv_152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "/langotv_144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/langotv_120.png", "sizes": "120x120", "type": "image/png" },
+    { "src": "/langotv_96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/langotv_72.png", "sizes": "72x72", "type": "image/png" },
+    { "src": "/langotv_57.png", "sizes": "57x57", "type": "image/png" }
+  ]
+}

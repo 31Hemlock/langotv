@@ -224,6 +224,8 @@ export default function ControllerPage() {
   function toggleTilt() {
     if (!isConnected()) return;
 
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
     if (!tiltOn.current) {
       requestSensors().finally(() => {
         startTilt({
@@ -231,7 +233,8 @@ export default function ControllerPage() {
           maxDeg: 10,
           deadzone: 0,
           smooth: 0.45,
-          invertX: true,
+          invertX: !isIOS,
+          invertY: isIOS,
         });
         tiltOn.current = true;
         setStatus((s) => (s.includes("• tilt") ? s : s + " • tilt"));
