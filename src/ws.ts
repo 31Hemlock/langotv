@@ -1,8 +1,3 @@
-// src/ws.ts
-// WebRTC transport for the controller.
-//
-// Browser <-> (WSS) Cloudflare Worker <-> (WebRTC DataChannel) Host.
-
 type ControllerHandlers = {
   onOpen: () => void;
   onMessage: (msg: any) => void;
@@ -17,7 +12,6 @@ if (!SIGNALER_URL) {
   );
 }
 
-// Single connection per tab for now.
 let signalWS: WebSocket | null = null;
 let pc: RTCPeerConnection | null = null;
 let dc: RTCDataChannel | null = null;
@@ -40,8 +34,6 @@ export function send(obj: unknown) {
   }
 }
 
-// Clean up all underlying resources.
-// Safe to call multiple times.
 export function disconnectController() {
   connectionState = "disconnected";
 
@@ -87,17 +79,13 @@ export function disconnectController() {
   }
 }
 
-// Main entry: establish signaling WS, then WebRTC PC + DataChannel.
-// Resolves once the DataChannel is open and handlers.onOpen has been called.
 export function connectController(h: ControllerHandlers): Promise<void> {
-  // If something is already open/connecting, tear it down first.
   if (connectionState === "connecting" || connectionState === "ready") {
     disconnectController();
   }
 
   handlers = h;
   connectionState = "connecting";
-  console.log("sanity check ");
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -151,7 +139,6 @@ export function connectController(h: ControllerHandlers): Promise<void> {
             safeReject(new Error("no clientId from signaler"));
             return;
           }
-          // Create PC + DataChannel, then start offer.
           createPeerConnectionAndDataChannel(
             ws,
             clientId,
@@ -190,13 +177,11 @@ export function connectController(h: ControllerHandlers): Promise<void> {
         }
 
         case "host-registered": {
-          // Optional info; nothing special to do.
           console.log("[RTC] host-registered (from signaler)");
           break;
         }
 
         default:
-          // Other messages are not for the client or are not relevant here.
           break;
       }
     };
@@ -204,15 +189,18 @@ export function connectController(h: ControllerHandlers): Promise<void> {
     ws.onclose = (ev) => {
       console.log("[RTC] signaler closed", ev.code, ev.reason);
       const wasReady = connectionState === "ready";
-      disconnectController();
       if (!wasReady) {
+        disconnectController();
         safeReject(new Error("signaler closed before connection became ready"));
+      } else {
+        if (signalWS === ws) {
+          signalWS = null;
+        }
       }
     };
 
     ws.onerror = (err) => {
       console.error("[RTC] signaler error", err);
-      // onclose will handle reject/cleanup if needed.
     };
   });
 }
@@ -223,7 +211,6 @@ function createPeerConnectionAndDataChannel(
   resolve: () => void,
   reject: (err: unknown) => void
 ) {
-  // Browser-side RTCPeerConnection with host-only ICE.
   pc = new RTCPeerConnection({ iceServers: [] });
 
   pc.onicecandidate = (ev) => {
@@ -254,7 +241,6 @@ function createPeerConnectionAndDataChannel(
     }
   };
 
-  // We are the "offerer"; we create the DataChannel.
   const channel = pc.createDataChannel("controller");
   dc = channel;
 
