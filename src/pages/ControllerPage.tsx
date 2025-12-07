@@ -7,6 +7,7 @@ import {
 } from "../ws";
 import { startTilt, stopTilt, calibrate, requestSensors } from "../tilt";
 import S4Solo from "../layouts/S4Solo";
+import PS2ZoneLayout from "../layouts/PS2ZoneLayout";
 import FullscreenButton from "../components/FullscreenButton";
 
 export interface IDpad {
@@ -94,10 +95,29 @@ function sendHello() {
   });
 }
 
-export default function ControllerPage() {
+type ControllerPageProps = {
+  layout?: "s4" | "ps2";
+};
+
+export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   const [status, setStatus] = useState("disconnected");
   const [slot, setSlot] = useState<number | null>(null);
   const tiltOn = useRef(false);
+
+  // Union-of-sources dpad state: how many "things" currently want each direction.
+  const dpadUsage = useRef<{
+    up: number;
+    down: number;
+    left: number;
+    right: number;
+  }>({
+    up: 0,
+    down: 0,
+    left: 0,
+    right: 0,
+  });
+
+  const LayoutComponent = layout === "ps2" ? PS2ZoneLayout : S4Solo;
 
   useEffect(() => {
     const vis = () => {
@@ -118,7 +138,7 @@ export default function ControllerPage() {
   }) {
     return (
       <button
-        className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs"
+        className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
         onClick={status !== "disconnected" ? disconnect : connect}
       >
         {status !== "disconnected" ? "Disconnect" : "Connect"}
@@ -131,12 +151,16 @@ export default function ControllerPage() {
     (async () => {
       try {
         lock = await (navigator as any).wakeLock?.request?.("screen");
-      } catch {}
+      } catch {
+        console.log("can't await lock");
+      }
     })();
     return () => {
       try {
         lock?.release?.();
-      } catch {}
+      } catch {
+        console.log("can't release lock");
+      }
     };
   }, []);
 
@@ -209,16 +233,91 @@ export default function ControllerPage() {
     send({ type: "state", ...patch });
   }
 
-  function pressDpad(dir: IDpadDir, down: boolean) {
-    send({ type: "state", dpad: down ? dir : "neutral" });
+  // Combine the ref-counted dpadUsage into a single IDpadDir/neutral value.
+  function computeCombinedDpad(): IDpadDir | "neutral" {
+    const u = dpadUsage.current.up > 0;
+    const d = dpadUsage.current.down > 0;
+    const l = dpadUsage.current.left > 0;
+    const r = dpadUsage.current.right > 0;
+
+    let v: "none" | "up" | "down" = "none";
+    if (u && !d) v = "up";
+    else if (d && !u) v = "down";
+
+    let h: "none" | "left" | "right" = "none";
+    if (l && !r) h = "left";
+    else if (r && !l) h = "right";
+
+    if (v === "none" && h === "none") return "neutral";
+
+    if (v === "up" && h === "left") return "upleft";
+    if (v === "up" && h === "right") return "upright";
+    if (v === "down" && h === "left") return "downleft";
+    if (v === "down" && h === "right") return "downright";
+
+    if (v !== "none") return v;
+    return h as IDpadDir;
   }
 
-  function pressShoulder(side: "left" | "right", down: boolean) {
-    send({
-      type: "state",
-      buttons:
-        side === "left" ? { SHOULDER_LEFT: down } : { SHOULDER_RIGHT: down },
-    });
+  // New dpad: union of multiple callers; supports diagonals and overlapping zones/thumbs.
+  function pressDpad(dir: IDpadDir, down: boolean) {
+    const affected: Array<"up" | "down" | "left" | "right"> = [];
+
+    if (dir === "up" || dir === "upleft" || dir === "upright") {
+      affected.push("up");
+    }
+    if (dir === "down" || dir === "downleft" || dir === "downright") {
+      affected.push("down");
+    }
+    if (dir === "left" || dir === "upleft" || dir === "downleft") {
+      affected.push("left");
+    }
+    if (dir === "right" || dir === "upright" || dir === "downright") {
+      affected.push("right");
+    }
+
+    const delta = down ? 1 : -1;
+
+    for (const k of affected) {
+      const current = dpadUsage.current[k];
+      const next = current + delta;
+      dpadUsage.current[k] = next < 0 ? 0 : next;
+    }
+
+    const combined = computeCombinedDpad();
+    send({ type: "state", dpad: combined });
+  }
+
+  /**
+   * which = 1 → L1/R1  (digital shoulder buttons via SHOULDER_LEFT / SHOULDER_RIGHT)
+   * which = 2 → L2/R2  (analog triggers via lt / rt, treated as 0 or 1 here)
+   */
+  function pressShoulder(side: "left" | "right", which: 1 | 2, down: boolean) {
+    if (which === 1) {
+      if (side === "left") {
+        send({
+          type: "state",
+          buttons: { SHOULDER_LEFT: down },
+        });
+      } else {
+        send({
+          type: "state",
+          buttons: { SHOULDER_RIGHT: down },
+        });
+      }
+    } else {
+      if (side === "left") {
+        send({
+          type: "state",
+          lt: down ? 1 : 0,
+        });
+      } else {
+        send({
+          type: "state",
+          rt: down ? 1 : 0,
+        });
+      }
+    }
   }
 
   function toggleTilt() {
@@ -262,14 +361,14 @@ export default function ControllerPage() {
         <ConnectButton connect={connect} disconnect={disconnect} />
         <div className="flex gap-2 items-center">
           <button
-            className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs"
+            className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
             onClick={toggleTilt}
           >
             {tiltOn.current === true ? "Untilt" : "Tilt"}
           </button>
 
           <button
-            className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs"
+            className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
             onClick={calibrate}
           >
             Calibrate
@@ -277,7 +376,7 @@ export default function ControllerPage() {
         </div>
       </div>
 
-      <S4Solo
+      <LayoutComponent
         status={status}
         slot={slot}
         onPress={press}

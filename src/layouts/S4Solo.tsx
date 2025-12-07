@@ -1,3 +1,4 @@
+// src/layouts/S4Solo.tsx
 import { type IDpadDir } from "../pages/ControllerPage";
 import { useRef, useState } from "react";
 
@@ -6,7 +7,8 @@ export type BasicControllerProps = {
   slot: number | null;
   onPress: (name: string, down: boolean) => void;
   pressDpad: (dir: IDpadDir, down: boolean) => void;
-  pressShoulder: (side: "left" | "right", down: boolean) => void;
+  // which: 1 = L1/R1, 2 = L2/R2
+  pressShoulder: (side: "left" | "right", which: 1 | 2, down: boolean) => void;
   onAxis: (patch: { lx?: number; ly?: number }) => void;
   onCalibrate: () => void;
   onToggleTilt: () => void;
@@ -19,6 +21,7 @@ export default function S4Solo({
   onAxis,
 }: BasicControllerProps) {
   const MAG = 1;
+
   return (
     <div className="flex flex-col w-full h-full relative overflow-hidden select-none">
       <div className="w-full h-full flex flex-row">
@@ -26,22 +29,22 @@ export default function S4Solo({
           <div className="h-full grid grid-rows-1 grid-cols-2 mx-2 gap-2">
             <div className="min-h-0 h-full grid grid-cols-1 grid-rows-[3rem_minmax(0,1fr)_minmax(0,1fr)] gap-4 py-4 overflow-hidden">
               <Btn
-                key={"START"}
-                label={"START"}
+                key="START"
+                label="START"
                 onDown={() => onPress("START", true)}
                 onUp={() => onPress("START", false)}
                 className="bg-[#c22223] w-full rounded-full relative font-bold text-white sm:text-[30px] overflow-hidden"
               />
               <Btn
-                key={"B"}
-                label={"B"}
+                key="B"
+                label="B"
                 onDown={() => onPress("B", true)}
                 onUp={() => onPress("B", false)}
                 className="bg-[#04783e] w-full h-full rounded-full relative font-bold text-white text-[70px] overflow-hidden"
               />
               <Btn
-                key={"X"}
-                label={"Z"}
+                key="X"
+                label="Z"
                 onDown={() => onPress("X", true)}
                 onUp={() => onPress("X", false)}
                 className="bg-[#5a5b61] w-full h-full rounded-[80px] relative font-bold text-white text-[70px] overflow-hidden"
@@ -50,17 +53,17 @@ export default function S4Solo({
             <div className="grid grid-col w-full my-4 gap-2 grid-rows-[3rem_minmax(0,1fr)_minmax(0,1fr)]">
               <div className="w-full grid grid-rows-1 grid-cols-2 gap-2 mx-auto">
                 <DirBtn
-                  label="L"
-                  onDown={() => pressShoulder("left", true)}
-                  onUp={() => pressShoulder("left", false)}
+                  label="L1"
+                  onDown={() => pressShoulder("left", 1, true)}
+                  onUp={() => pressShoulder("left", 1, false)}
                   className="bg-[#5a5b61] rounded-full text-[30px] text-white"
                 />
 
                 <DirBtn
-                  label="R"
-                  onDown={() => pressShoulder("right", true)}
-                  onUp={() => pressShoulder("right", false)}
-                  className="bg-[#5a5b61] rounded-full text-[30px] text-white "
+                  label="R1"
+                  onDown={() => pressShoulder("right", 1, true)}
+                  onUp={() => pressShoulder("right", 1, false)}
+                  className="bg-[#5a5b61] rounded-full text-[30px] text-white"
                 />
               </div>
 
@@ -126,8 +129,8 @@ export default function S4Solo({
           </div>
         </div>
         <Btn
-          key={"A"}
-          label={"A"}
+          key="A"
+          label="A"
           onDown={() => onPress("A", true)}
           onUp={() => onPress("A", false)}
           className="bg-[#0139c7] w-[50%] h-full relative text-[70px] font-bold text-white"

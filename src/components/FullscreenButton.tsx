@@ -52,7 +52,7 @@ export default function FullscreenButton() {
   return (
     <button
       onClick={isFullscreen ? exit : enter}
-      className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs"
+      className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
     >
       {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
     </button>
