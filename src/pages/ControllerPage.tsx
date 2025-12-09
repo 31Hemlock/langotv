@@ -329,7 +329,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
       requestSensors().finally(() => {
         startTilt({
           axis: "right",
-          maxDeg: 10,
+          maxDeg: 12,
           deadzone: 0,
           smooth: 0.45,
           invertX: !isIOS,
