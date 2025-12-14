@@ -25,6 +25,8 @@ export type IDpadDir =
   | "downleft"
   | "downright";
 
+export type StickDir = "up" | "down" | "left" | "right";
+
 type DeviceInfo = {
   userAgent: string;
   platform: string;
@@ -104,8 +106,21 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   const [slot, setSlot] = useState<number | null>(null);
   const tiltOn = useRef(false);
 
-  // Union-of-sources dpad state: how many "things" currently want each direction.
+  // Union-of-sources dpad state
   const dpadUsage = useRef<{
+    up: number;
+    down: number;
+    left: number;
+    right: number;
+  }>({
+    up: 0,
+    down: 0,
+    left: 0,
+    right: 0,
+  });
+
+  // Union-of-sources Virtual Stick state (Mapped to Left Stick)
+  const stickUsage = useRef<{
     up: number;
     down: number;
     left: number;
@@ -233,7 +248,6 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
     send({ type: "state", ...patch });
   }
 
-  // Combine the ref-counted dpadUsage into a single IDpadDir/neutral value.
   function computeCombinedDpad(): IDpadDir | "neutral" {
     const u = dpadUsage.current.up > 0;
     const d = dpadUsage.current.down > 0;
@@ -259,7 +273,6 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
     return h as IDpadDir;
   }
 
-  // New dpad: union of multiple callers; supports diagonals and overlapping zones/thumbs.
   function pressDpad(dir: IDpadDir, down: boolean) {
     const affected: Array<"up" | "down" | "left" | "right"> = [];
 
@@ -288,10 +301,27 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
     send({ type: "state", dpad: combined });
   }
 
-  /**
-   * which = 1 → L1/R1  (digital shoulder buttons via SHOULDER_LEFT / SHOULDER_RIGHT)
-   * which = 2 → L2/R2  (analog triggers via lt / rt, treated as 0 or 1 here)
-   */
+  // New Function: Handles digital buttons for analog stick
+  function pressStick(dir: StickDir, down: boolean) {
+    const delta = down ? 1 : -1;
+    const current = stickUsage.current[dir];
+    const next = current + delta;
+    stickUsage.current[dir] = next < 0 ? 0 : next;
+
+    // Calculate axis values
+    const u = stickUsage.current.up > 0 ? 1 : 0;
+    const d = stickUsage.current.down > 0 ? 1 : 0;
+    const l = stickUsage.current.left > 0 ? 1 : 0;
+    const r = stickUsage.current.right > 0 ? 1 : 0;
+
+    const y = u - d; // Up is positive Y in XInput
+    const x = r - l; // Right is positive X in XInput
+
+    // We default this to LEFT STICK (lx, ly)
+    // If you ever want these buttons to drive Right stick, change to rx, ry
+    send({ type: "state", lx: x, ly: y });
+  }
+
   function pressShoulder(side: "left" | "right", which: 1 | 2, down: boolean) {
     if (which === 1) {
       if (side === "left") {
@@ -382,6 +412,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
         onPress={press}
         pressDpad={pressDpad}
         pressShoulder={pressShoulder}
+        pressStick={pressStick} // Passed down to layout
         onAxis={setAxis}
         onCalibrate={calibrate}
         onToggleTilt={toggleTilt}

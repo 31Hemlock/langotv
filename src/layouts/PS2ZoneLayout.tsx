@@ -1,7 +1,18 @@
 // src/layouts/PS2ZoneLayout.tsx
 import { useRef, useState, useCallback } from "react";
-import type { IDpadDir } from "../pages/ControllerPage";
-import type { BasicControllerProps } from "./PS2Layout";
+import type { IDpadDir, StickDir } from "../pages/ControllerPage";
+
+export interface BasicControllerProps {
+  status: string;
+  slot: number | null;
+  onPress: (name: string, down: boolean) => void;
+  pressDpad: (dir: IDpadDir, down: boolean) => void;
+  pressShoulder: (side: "left" | "right", which: 1 | 2, down: boolean) => void;
+  pressStick: (dir: StickDir, down: boolean) => void; // New prop
+  onAxis: (patch: { lx?: number; ly?: number }) => void;
+  onCalibrate: () => void;
+  onToggleTilt: () => void;
+}
 
 type ZoneRect = {
   // normalized coordinates in [0, 1] relative to the controller surface
@@ -16,6 +27,8 @@ type ZoneAction = {
   buttons?: string[];
   // single dpad direction
   dpad?: IDpadDir;
+  // analog stick emulation (digital -> analog)
+  stick?: StickDir;
   // shoulder / trigger
   shoulder?: {
     side: "left" | "right";
@@ -53,11 +66,9 @@ function rectToStyle(r: ZoneRect): React.CSSProperties {
   };
 }
 
-// This is your "map of the screen" – tweak these to taste.
-// Everything here is in 0..1 percentages of the controller surface.
-// I've chosen something vaguely "PS2-ish", but it's just data.
+// Map of the screen.
 const ZONES: Zone[] = [
-  // Left thumb area: dpad
+  // --- D-Pad (Left Bottom) ---
   {
     id: "dpad_up",
     rect: { x0: 0.0, y0: 0.8, x1: 0.1, y1: 1 },
@@ -76,10 +87,31 @@ const ZONES: Zone[] = [
   {
     id: "dpad_right",
     rect: { x0: 0.1, y0: 0.6, x1: 0.2, y1: 0.8 },
-
     action: { dpad: "right", label: "→" },
   },
 
+  {
+    id: "ls_up",
+    rect: { x0: 0.12, y0: 0.0, x1: 0.24, y1: 0.125 },
+    action: { stick: "up", label: "L↑" },
+  },
+  {
+    id: "ls_down",
+    rect: { x0: 0.12, y0: 0.125, x1: 0.24, y1: 0.25 },
+    action: { stick: "down", label: "L↓" },
+  },
+  {
+    id: "ls_left",
+    rect: { x0: 0.0, y0: 0.0, x1: 0.12, y1: 0.25 },
+    action: { stick: "left", label: "L←" },
+  },
+  {
+    id: "ls_right",
+    rect: { x0: 0.24, y0: 0.0, x1: 0.36, y1: 0.25 },
+    action: { stick: "right", label: "L→" },
+  },
+
+  // --- Shoulders ---
   // Left top shoulder "bar" (L1 / L2)
   {
     id: "L1",
@@ -104,8 +136,7 @@ const ZONES: Zone[] = [
     action: { shoulder: { side: "right", which: 2 }, label: "R2" },
   },
 
-  // Right-hand face buttons: X / Circle / Square / Triangle
-  // big X at bottom-right-ish
+  // --- Face Buttons ---
   {
     id: "X",
     rect: { x0: 0.5, y0: 0.6, x1: 1, y1: 1 },
@@ -124,11 +155,10 @@ const ZONES: Zone[] = [
   {
     id: "Square",
     rect: { x0: 0.85, y0: 0.3, x1: 1.0, y1: 0.6 },
-
     action: { buttons: ["X"], label: "□" },
   },
 
-  // Start / Back at the center
+  // --- Center ---
   {
     id: "Start",
     rect: { x0: 0.43, y0: 0.08, x1: 0.57, y1: 0.2 },
@@ -145,6 +175,7 @@ export default function PS2ZoneLayout({
   onPress,
   pressDpad,
   pressShoulder,
+  pressStick,
 }: BasicControllerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -167,7 +198,7 @@ export default function PS2ZoneLayout({
 
   const fireZone = useCallback(
     (zone: Zone, down: boolean) => {
-      const { buttons, dpad, shoulder } = zone.action;
+      const { buttons, dpad, shoulder, stick } = zone.action;
 
       if (buttons && buttons.length) {
         for (const name of buttons) {
@@ -176,16 +207,18 @@ export default function PS2ZoneLayout({
       }
 
       if (dpad) {
-        // your protocol only supports one dpad direction at a time,
-        // so this is "last write wins" across zones using dpad
         pressDpad(dpad, down);
+      }
+
+      if (stick) {
+        pressStick(stick, down);
       }
 
       if (shoulder) {
         pressShoulder(shoulder.side, shoulder.which, down);
       }
     },
-    [onPress, pressDpad, pressShoulder]
+    [onPress, pressDpad, pressShoulder, pressStick]
   );
 
   const zonesAtPoint = useCallback((xNorm: number, yNorm: number): Zone[] => {
@@ -345,10 +378,6 @@ export default function PS2ZoneLayout({
           );
         })}
       </div>
-
-      {/* You can still add any overlay HUD (status, tilt button, etc.) here
-          if you want the layout itself to show status. For now it just draws
-          the zones. */}
     </div>
   );
 }
