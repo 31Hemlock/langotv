@@ -41,6 +41,7 @@ export default function FullscreenButton() {
 
   return (
     <button
+      onContextMenu={(e) => e.preventDefault()}
       onClick={isFullscreen ? exit : enter}
       className={`
         rounded-xl border-2 px-4 py-2 text-[10px] leading-tight font-black uppercase italic select-none transition-all duration-75

@@ -381,8 +381,8 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
         </div>
       )}
 
-      {/* Centered Slot Indicator */}
-      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center pointer-events-none">
+      {/* Centered Slot Indicator - z-index increased to sit on top of overlay */}
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[51] flex items-center justify-center pointer-events-none select-none">
         <div className="flex items-center gap-3 rounded-full bg-black/60 text-white px-4 py-2 text-xs">
           <SlotDot lit={slot === 1} n={1} />
           <SlotDot lit={slot === 2} n={2} />
@@ -395,6 +395,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
       {!isActuallyReady && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center">
           <button
+            onContextMenu={(e) => e.preventDefault()}
             onClick={() => {
               window.navigator.vibrate?.(20);
               if (status === "connecting" || status === "connected") {
@@ -405,7 +406,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
             }}
             className={`
               w-full max-w-xs py-6 rounded-2xl border-2 shadow-2xl transition-all duration-300
-              text-lg font-black uppercase tracking-widest pointer-events-auto
+              text-lg font-black uppercase tracking-widest pointer-events-auto select-none
               ${
                 status === "connecting" || status === "connected"
                   ? "bg-amber-500 border-amber-400 text-white animate-pulse"
@@ -417,17 +418,19 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
               ? "Connecting..."
               : "Connect Controller"}
           </button>
-          <p className="mt-4 text-slate-500 text-xs font-bold uppercase tracking-tighter opacity-50">
+          {/* <p className="mt-4 text-slate-500 text-xs font-bold uppercase tracking-tighter opacity-50 select-none">
             TV Gaming Controller
-          </p>
+          </p> 
+          */}
         </div>
       )}
 
-      {/* Top Right Controls Row - Offset by 16px (4px more) */}
+      {/* Top Right Controls Row */}
       <div className="fixed top-2 right-4 flex flex-col items-end gap-4 z-30 pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           {isTiltActive && (
             <button
+              onContextMenu={(e) => e.preventDefault()}
               className={`
                 rounded-xl border-2 px-4 py-2 text-[10px] leading-tight font-black uppercase italic select-none transition-all duration-75
                 bg-slate-100 border-slate-200 text-slate-400 active:text-red-400 active:border-red-200
@@ -442,11 +445,12 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
 
           {isActuallyReady && (
             <button
+              onContextMenu={(e) => e.preventDefault()}
               onClick={() => {
                 window.navigator.vibrate?.(10);
                 disconnect();
               }}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-600 hover:bg-red-500/20 transition-all active:scale-90"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-600 hover:bg-red-500/20 transition-all active:scale-90 select-none"
               title="Disconnect"
             >
               <span className="text-xl font-bold">✕</span>
@@ -461,9 +465,10 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
           }`}
         >
           <button
+            onContextMenu={(e) => e.preventDefault()}
             className={`
               w-48 h-16 rounded-3xl transition-all duration-75 flex items-center justify-center font-black uppercase tracking-widest text-sm
-              active:scale-95 active:shadow-inner
+              active:scale-95 active:shadow-inner select-none
               ${
                 isTiltActive
                   ? "bg-orange-500 border-b-4 border-orange-700 text-white shadow-xl active:translate-y-0.5 active:border-b-0"
