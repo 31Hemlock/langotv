@@ -426,7 +426,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
       )}
 
       {/* Top Right Controls Row */}
-      <div className="fixed top-2 right-4 flex flex-col items-end gap-4 z-30 pointer-events-none">
+      <div className="fixed top-2 right-4 flex flex-col items-end gap-2 z-30 pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           {isTiltActive && (
             <button
