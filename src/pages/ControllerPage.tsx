@@ -104,6 +104,7 @@ type ControllerPageProps = {
 export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   const [status, setStatus] = useState("disconnected");
   const [slot, setSlot] = useState<number | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const tiltOn = useRef(false);
 
   // Union-of-sources dpad state
@@ -190,6 +191,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   }, []);
 
   function connect() {
+    setWarning(null);
     setStatus("connecting");
 
     connectController({
@@ -211,7 +213,8 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
             setStatus(`ready${tiltOn.current ? " • tilt" : ""}`);
           }
           if (j?.ok === false && j?.error) {
-            setStatus(`error: ${j.error}`);
+            setStatus("error");
+            setWarning(j.error);
           }
         } catch (err) {
           console.log(err);
@@ -377,6 +380,18 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
 
   return (
     <div className="w-full h-[100dvh] relative touch-none overflow-hidden">
+      {warning && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white p-3 text-center text-sm font-bold flex justify-between items-center animate-in slide-in-from-top">
+          <span className="flex-1">⚠️ Server Error: {warning}</span>
+          <button
+            onClick={() => setWarning(null)}
+            className="ml-2 bg-black/20 rounded-full w-6 h-6 flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="fixed top-1 left-0 z-20 right-0 flex items-center justify-center pointer-events-none">
         <div className="flex items-center gap-2 rounded-full bg-black/60 text-white px-3 py-1 text-xs">
           <SlotDot lit={slot === 1} n={1} />
