@@ -163,7 +163,6 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   }, []);
 
   useEffect(() => {
-    connect();
     return () => {
       if (tiltOn.current) stopTilt();
       tiltOn.current = false;
