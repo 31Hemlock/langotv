@@ -105,9 +105,9 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   const [status, setStatus] = useState("disconnected");
   const [slot, setSlot] = useState<number | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [isTiltActive, setIsTiltActive] = useState(false);
   const tiltOn = useRef(false);
 
-  // Union-of-sources dpad state
   const dpadUsage = useRef<{
     up: number;
     down: number;
@@ -120,7 +120,6 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
     right: 0,
   });
 
-  // Union-of-sources Virtual Stick state (Mapped to Left Stick)
   const stickUsage = useRef<{
     up: number;
     down: number;
@@ -144,23 +143,6 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
   }, []);
-
-  function ConnectButton({
-    connect,
-    disconnect,
-  }: {
-    connect: () => void;
-    disconnect: () => void;
-  }) {
-    return (
-      <button
-        className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
-        onClick={status !== "disconnected" ? disconnect : connect}
-      >
-        {status !== "disconnected" ? "Disconnect" : "Connect"}
-      </button>
-    );
-  }
 
   useEffect(() => {
     let lock: any;
@@ -187,7 +169,6 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
       tiltOn.current = false;
       disconnectController();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function connect() {
@@ -227,15 +208,18 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
           stopTilt();
         }
         tiltOn.current = false;
+        setIsTiltActive(false);
       },
     }).catch((err) => {
       console.error(err);
-      setStatus("error: connect failed");
+      setStatus("error");
+      setWarning("Connection failed");
       setSlot(null);
       if (tiltOn.current) {
         stopTilt();
       }
       tiltOn.current = false;
+      setIsTiltActive(false);
     });
   }
 
@@ -244,6 +228,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   }
 
   function press(name: string, down: boolean) {
+    if (down) window.navigator.vibrate?.(10);
     send({ type: "state", buttons: { [name]: down } });
   }
 
@@ -277,6 +262,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   }
 
   function pressDpad(dir: IDpadDir, down: boolean) {
+    if (down) window.navigator.vibrate?.(10);
     const affected: Array<"up" | "down" | "left" | "right"> = [];
 
     if (dir === "up" || dir === "upleft" || dir === "upright") {
@@ -304,28 +290,26 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
     send({ type: "state", dpad: combined });
   }
 
-  // New Function: Handles digital buttons for analog stick
   function pressStick(dir: StickDir, down: boolean) {
+    if (down) window.navigator.vibrate?.(10);
     const delta = down ? 1 : -1;
     const current = stickUsage.current[dir];
     const next = current + delta;
     stickUsage.current[dir] = next < 0 ? 0 : next;
 
-    // Calculate axis values
     const u = stickUsage.current.up > 0 ? 1 : 0;
     const d = stickUsage.current.down > 0 ? 1 : 0;
     const l = stickUsage.current.left > 0 ? 1 : 0;
     const r = stickUsage.current.right > 0 ? 1 : 0;
 
-    const y = u - d; // Up is positive Y in XInput
-    const x = r - l; // Right is positive X in XInput
+    const y = u - d;
+    const x = r - l;
 
-    // We default this to LEFT STICK (lx, ly)
-    // If you ever want these buttons to drive Right stick, change to rx, ry
     send({ type: "state", lx: x, ly: y });
   }
 
   function pressShoulder(side: "left" | "right", which: 1 | 2, down: boolean) {
+    if (down) window.navigator.vibrate?.(15);
     if (which === 1) {
       if (side === "left") {
         send({
@@ -354,6 +338,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
   }
 
   function toggleTilt() {
+    window.navigator.vibrate?.(15);
     if (!isConnected()) return;
 
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -369,17 +354,21 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
           invertY: isIOS,
         });
         tiltOn.current = true;
+        setIsTiltActive(true);
         setStatus((s) => (s.includes("• tilt") ? s : s + " • tilt"));
       });
     } else {
       stopTilt();
       tiltOn.current = false;
+      setIsTiltActive(false);
       setStatus((s) => s.replace(" • tilt", ""));
     }
   }
 
+  const isActuallyReady = status.startsWith("ready");
+
   return (
-    <div className="w-full h-[100dvh] relative touch-none overflow-hidden">
+    <div className="w-full h-[100dvh] relative touch-none overflow-hidden bg-white">
       {warning && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white p-3 text-center text-sm font-bold flex justify-between items-center animate-in slide-in-from-top">
           <span className="flex-1">⚠️ Server Error: {warning}</span>
@@ -392,8 +381,9 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
         </div>
       )}
 
-      <div className="fixed top-1 left-0 z-20 right-0 flex items-center justify-center pointer-events-none">
-        <div className="flex items-center gap-2 rounded-full bg-black/60 text-white px-3 py-1 text-xs">
+      {/* Centered Slot Indicator */}
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center pointer-events-none">
+        <div className="flex items-center gap-3 rounded-full bg-black/60 text-white px-4 py-2 text-xs">
           <SlotDot lit={slot === 1} n={1} />
           <SlotDot lit={slot === 2} n={2} />
           <SlotDot lit={slot === 3} n={3} />
@@ -401,22 +391,95 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
         </div>
       </div>
 
-      <div className="fixed top-2 right-2 flex gap-2 z-20">
-        <FullscreenButton />
-        <ConnectButton connect={connect} disconnect={disconnect} />
-        <div className="flex gap-2 items-center">
+      {/* Connectivity Overlay */}
+      {!isActuallyReady && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm px-6 text-center">
           <button
-            className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
-            onClick={toggleTilt}
+            onClick={() => {
+              window.navigator.vibrate?.(20);
+              if (status === "connecting" || status === "connected") {
+                disconnect();
+              } else {
+                connect();
+              }
+            }}
+            className={`
+              w-full max-w-xs py-6 rounded-2xl border-2 shadow-2xl transition-all duration-300
+              text-lg font-black uppercase tracking-widest pointer-events-auto
+              ${
+                status === "connecting" || status === "connected"
+                  ? "bg-amber-500 border-amber-400 text-white animate-pulse"
+                  : "bg-blue-600 border-blue-500 text-white hover:scale-105 active:scale-95"
+              }
+            `}
           >
-            {tiltOn.current === true ? "Untilt" : "Tilt"}
+            {status === "connecting" || status === "connected"
+              ? "Connecting..."
+              : "Connect Controller"}
           </button>
+          <p className="mt-4 text-slate-500 text-xs font-bold uppercase tracking-tighter opacity-50">
+            TV Gaming Controller
+          </p>
+        </div>
+      )}
 
+      {/* Top Right Controls Row - Offset by 16px (4px more) */}
+      <div className="fixed top-2 right-4 flex flex-col items-end gap-4 z-30 pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {isTiltActive && (
+            <button
+              className={`
+                rounded-xl border-2 px-4 py-2 text-[10px] leading-tight font-black uppercase italic select-none transition-all duration-75
+                bg-slate-100 border-slate-200 text-slate-400 active:text-red-400 active:border-red-200
+              `}
+              onClick={toggleTilt}
+            >
+              motion
+            </button>
+          )}
+
+          <FullscreenButton />
+
+          {isActuallyReady && (
+            <button
+              onClick={() => {
+                window.navigator.vibrate?.(10);
+                disconnect();
+              }}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-600 hover:bg-red-500/20 transition-all active:scale-90"
+              title="Disconnect"
+            >
+              <span className="text-xl font-bold">✕</span>
+            </button>
+          )}
+        </div>
+
+        {/* Unified Motion Control Button Space */}
+        <div
+          className={`pointer-events-auto transition-opacity duration-300 ${
+            isActuallyReady ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
           <button
-            className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
-            onClick={calibrate}
+            className={`
+              w-48 h-16 rounded-3xl transition-all duration-75 flex items-center justify-center font-black uppercase tracking-widest text-sm
+              active:scale-95 active:shadow-inner
+              ${
+                isTiltActive
+                  ? "bg-orange-500 border-b-4 border-orange-700 text-white shadow-xl active:translate-y-0.5 active:border-b-0"
+                  : "bg-white border-2 border-blue-600 text-blue-600 shadow-sm"
+              }
+            `}
+            onClick={() => {
+              if (isTiltActive) {
+                window.navigator.vibrate?.(40);
+                calibrate();
+              } else {
+                toggleTilt();
+              }
+            }}
           >
-            Calibrate
+            {isTiltActive ? "RECENTER" : "Enable Motion"}
           </button>
         </div>
       </div>
@@ -427,7 +490,7 @@ export default function ControllerPage({ layout = "s4" }: ControllerPageProps) {
         onPress={press}
         pressDpad={pressDpad}
         pressShoulder={pressShoulder}
-        pressStick={pressStick} // Passed down to layout
+        pressStick={pressStick}
         onAxis={setAxis}
         onCalibrate={calibrate}
         onToggleTilt={toggleTilt}
@@ -440,8 +503,10 @@ function SlotDot({ lit, n }: { lit: boolean; n: number }) {
   return (
     <div
       className={
-        "h-2.5 w-2.5 rounded-full " +
-        (lit ? "bg-green-400 shadow-[0_0_6px_#34d399]" : "bg-white/40")
+        "h-3.5 w-3.5 rounded-full transition-all duration-300 " +
+        (lit
+          ? "bg-green-400 shadow-[0_0_10px_#34d399] scale-110"
+          : "bg-white/40 scale-100")
       }
       title={`Slot ${n}`}
     />

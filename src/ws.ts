@@ -39,6 +39,9 @@ export function disconnectController() {
 
   if (dc) {
     try {
+      dc.onclose = null;
+      dc.onerror = null;
+      dc.onmessage = null;
       dc.close();
     } catch (err) {
       console.log(err);
@@ -48,6 +51,8 @@ export function disconnectController() {
 
   if (pc) {
     try {
+      pc.onicecandidate = null;
+      pc.onconnectionstatechange = null;
       pc.close();
     } catch (err) {
       console.log(err);
@@ -57,6 +62,10 @@ export function disconnectController() {
 
   if (signalWS) {
     try {
+      signalWS.onopen = null;
+      signalWS.onmessage = null;
+      signalWS.onclose = null;
+      signalWS.onerror = null;
       if (
         signalWS.readyState === WebSocket.OPEN ||
         signalWS.readyState === WebSocket.CONNECTING

@@ -7,7 +7,7 @@ export default function FullscreenButton() {
 
   async function goFullscreen(node: HTMLElement = document.documentElement) {
     if (!document.fullscreenElement && node.requestFullscreen) {
-      await node.requestFullscreen(); // must be from a user click/tap
+      await node.requestFullscreen();
     } else if (document.exitFullscreen) {
       await document.exitFullscreen();
     }
@@ -20,16 +20,6 @@ export default function FullscreenButton() {
     } catch (err) {
       console.log(err);
     }
-
-    // const el = document.documentElement;
-    // if (!document.fullscreenElement && el.requestFullscreen) {
-    //   await el.requestFullscreen();
-    //   try {
-    //     await (screen.orientation as any)?.lock?.("landscape");
-    //   } catch (err) {
-    //     console.log(err);
-    //   }
-    // }
   }, []);
 
   const exit = useCallback(async () => {
@@ -52,9 +42,16 @@ export default function FullscreenButton() {
   return (
     <button
       onClick={isFullscreen ? exit : enter}
-      className="rounded border bg-white/80 backdrop-blur px-3 py-1 text-xs select-none"
+      className={`
+        rounded-xl border-2 px-4 py-2 text-[10px] leading-tight font-black uppercase italic select-none transition-all duration-75
+        ${
+          isFullscreen
+            ? "bg-slate-100 border-slate-200 text-slate-400 active:text-red-400 active:border-red-200"
+            : "bg-white border-blue-600 text-blue-600 shadow-md"
+        }
+      `}
     >
-      {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+      {isFullscreen ? "FScreen" : "Fullscreen"}
     </button>
   );
 }
